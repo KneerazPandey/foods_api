@@ -1,13 +1,20 @@
-import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 import admin from 'firebase-admin';
 
 import PasswordHashing from '../utils/password_hashing.js';
+import User from '../models/User.js';
 
 
 export const createUser = async (req, res) => {
+    const user = req.body;
     try {
-        const user = req.body;
+        //? Checking if the user sends the data
+        if (!user.username || !user.password, !user.email) {
+            return res.status(400).json({
+                error: 'Please fill all the form fields',
+            });
+        }
+
         //? Check if the user exists in firebase or not
         await admin.auth().getUserByEmail(user.email);
         //* Throwing error if user exists in firebase account
@@ -19,7 +26,7 @@ export const createUser = async (req, res) => {
         if (error.code === 'auth/user-not-found') {
             try {
                 //* Registering user in firebase
-                const registeredUser = await admin.auth().createUser({
+                const userResponse = await admin.auth().createUser({
                     email: user.email,
                     password: user.password,
                     emailVerified: false,
@@ -27,22 +34,23 @@ export const createUser = async (req, res) => {
                 });
 
                 //* Creating user object in mongoose database
-                const newUser = new User({
+                const registeredUser = await User.create({
+                    username: user.username,
                     email: user.email,
-                    username: user.password,
                     password: PasswordHashing.encrypt(user.password),
-                    uid: registeredUser.uid,
+                    uid: userResponse.uid,
                     userType: 'Client',
                 });
-                await newUser.save();
+                
+                const { password, ...others } = registeredUser._doc;
 
-                return res.status(201).json({status: true});
+                return res.status(201).json({status: true, message: 'User registered successfully', ...others});
             }catch(error) {
-                return res.status(500).json({status: false, error: 'Error creating user'});
+                return res.status(500).json({status: false, error: error});
             }
         }
 
-        return res.status(500).json({status: false, error: 'Error creating user'});
+        return res.status(500).json({status: false, error: 'Error occured while creating user'});
     }
 }
 
