@@ -55,8 +55,13 @@ export const createUser = async (req, res) => {
 }
 
 export const loginUser = async (req, res) => {
+    const data = req.body;
     try{
-        const data = req.body;
+        //? Checking if user sends correct data or not
+        if (!data.email || !data.password) {
+            return res.status(400).send({status: false, message: 'Please fill all the forms data'});
+        }
+
         //? Find the user by email from the mongoose database
         const user = await User.findOne({email: data.email});
 
