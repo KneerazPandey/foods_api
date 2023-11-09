@@ -3,7 +3,7 @@ import { verifyToken } from "./verifyTokenMiddleware.js";
 
 export const verifyAndAuthorization = (req, res, next) => {
     verifyToken(req, res, () => {
-        user = req.user; 
+        const user = req.user; 
         if (user.userType === 'Client' || user.userType === 'Vendor' || user.userType === 'Driver' || user.userType === 'Admin') {
             next();
         }else {
